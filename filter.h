@@ -86,7 +86,7 @@ public:
    
    const char *SourceName();
    
-   void Update();
+//   void Update();
    void Execute(){};
 };
 

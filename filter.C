@@ -135,9 +135,9 @@ void TBCombine::Execute(){
          image.SetPixel(p, r, c);
       }
    }
-   for(int r = heightb; r < heightt+heightb; r++){
+   for(int r = heightt; r < heightt+heightb; r++){
       for(int c = 0; c < widthb; c++){
-         Pixel p = image2->GetPixel(r-heightb, c);
+         Pixel p = image2->GetPixel(r-heightt, c);
          image.SetPixel(p, r, c);
       }
    }
@@ -454,11 +454,11 @@ const char* Color::SourceName(){
    return strdup(msg);
 }
 
-void Color::Update(){
-   char msg[128];
-   sprintf(msg, "%s: updating", SourceName());
-   Logger::LogEvent(msg);
-}
+//void Color::Update(){
+//   char msg[128];
+//   sprintf(msg, "%s: updating", SourceName());
+//   Logger::LogEvent(msg);
+//}
 
 //CheckSum
 void CheckSum::OutputCheckSum(char *filename){
