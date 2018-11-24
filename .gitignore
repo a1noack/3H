@@ -1,3 +1,4 @@
 **/stress_test*
 *.txt
 *.o
+my_checksum
