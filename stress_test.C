@@ -1,1 +1,0 @@
-../hank1/stress_test.C

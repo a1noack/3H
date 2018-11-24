@@ -1,4 +1,4 @@
-#include "pnmreader.h"
+#include "PNMreader.h"
 #include "logging.h"
 
 PNMreader::PNMreader(char *filename){
