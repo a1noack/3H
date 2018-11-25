@@ -6,6 +6,9 @@
 #include "source.h"
 
 class Filter : public Sink, public Source{
+private:
+   int max_depth = 1000;
+   static int current_depth;
 protected:
    virtual void Update();
    virtual void Execute() = 0;

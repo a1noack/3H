@@ -2,11 +2,21 @@
 #include "logging.h"
 
 //Filter
+//hello
 Filter::Filter(){
    this->image.SetSource(this);
 }
 
+int Filter::current_depth = 0;
+
 void Filter::Update(){
+   current_depth++;
+   if(current_depth > max_depth){
+      char msg[1024];
+      sprintf(msg, "%s: max filter depth reached!!", FilterName());
+      DataFlowException e(FilterName(), msg);
+      throw e;
+   }
    char msg[128];
    sprintf(msg, "%s: about to update input1", SourceName());
    Logger::LogEvent(msg);
