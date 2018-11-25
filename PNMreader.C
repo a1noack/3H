@@ -25,9 +25,22 @@ void PNMreader::Execute(){
       DataFlowException e(SourceName(), msg);
       throw e;
    }
-   
    // read in initial pnm file data
    fscanf(f_in, "%s\n%d %d\n%d\n", magicNum, &width, &height, &maxval);
+   
+   if(width > 100000 || height > 100000){
+      char msg[1024];
+      sprintf(msg, "%s: dimensions too large", SourceName());
+      DataFlowException e(SourceName(), msg);
+      throw e;
+   }
+   
+   if(maxval > 255){
+      char msg[1024];
+      sprintf(msg, "%s: maxval too large", SourceName());
+      DataFlowException e(SourceName(), msg);
+      throw e;
+   }
    
    this->image.SetMagicNum(magicNum);
    this->image.SetWidth(width);

@@ -30,6 +30,12 @@ void Filter::CheckImage1(){
       DataFlowException e(FilterName(), msg);
       throw e;
    }
+   if (image1 == &image){
+      char msg[1024];
+      sprintf(msg, "%s: no filter loops!", FilterName());
+      DataFlowException e(FilterName(), msg);
+      throw e;
+   }
 }
 
 void Filter::CheckImage2(){
@@ -37,6 +43,12 @@ void Filter::CheckImage2(){
    {
       char msg[1024];
       sprintf(msg, "%s: no input2!", FilterName());
+      DataFlowException e(FilterName(), msg);
+      throw e;
+   }
+   if (image2 == &image){
+      char msg[1024];
+      sprintf(msg, "%s: no filter loops!", FilterName());
       DataFlowException e(FilterName(), msg);
       throw e;
    }
@@ -61,7 +73,14 @@ void Blender::Execute(){
       DataFlowException e(SinkName(), msg);
       throw e;
    }
-   image.SetMaxVal(image1->GetMaxVal());
+   int maxval1 = image1->GetMaxVal();
+   int maxval2 = image2->GetMaxVal();
+   if(maxval1 > maxval2){
+      image.SetMaxVal(maxval1);
+   }
+   else{
+      image.SetMaxVal(maxval2);
+   }
    image.SetMagicNum(image1->GetMagicNum());
    image.SetHeight(height1);
    image.SetWidth(width1);
@@ -124,21 +143,29 @@ void TBCombine::Execute(){
       DataFlowException e(SinkName(), msg);
       throw e;
    }
-   image.SetMaxVal(image1->GetMaxVal());
+   int maxval1 = image1->GetMaxVal();
+   int maxval2 = image2->GetMaxVal();
+   if(maxval1 > maxval2){
+      image.SetMaxVal(maxval1);
+   }
+   else{
+      image.SetMaxVal(maxval2);
+   }
    image.SetMagicNum(image1->GetMagicNum());
    image.SetHeight(heightt + heightb);
    image.SetWidth(widtht);
    image.AllocateBufferSpace();
+   Pixel p;
    for(int r = 0; r < heightt; r++){
       for(int c = 0; c < widtht; c++){
-         Pixel p = image1->GetPixel(r, c);
+         p = image1->GetPixel(r, c);
          image.SetPixel(p, r, c);
       }
    }
-   for(int r = heightt; r < heightt+heightb; r++){
+   for(int r = 0; r < heightb; r++){
       for(int c = 0; c < widthb; c++){
-         Pixel p = image2->GetPixel(r-heightt, c);
-         image.SetPixel(p, r, c);
+         p = image2->GetPixel(r, c);
+         image.SetPixel(p, r+heightt, c);
       }
    }
 }
@@ -185,7 +212,14 @@ void LRCombine::Execute(){
       DataFlowException e(SinkName(), msg);
       throw e;
    }
-   image.SetMaxVal(image1->GetMaxVal());
+   int maxval1 = image1->GetMaxVal();
+   int maxval2 = image2->GetMaxVal();
+   if(maxval1 > maxval2){
+      image.SetMaxVal(maxval1);
+   }
+   else{
+      image.SetMaxVal(maxval2);
+   }
    image.SetMagicNum(image1->GetMagicNum());
    image.SetHeight(heightl);
    image.SetWidth(widthl + widthr);
@@ -197,9 +231,9 @@ void LRCombine::Execute(){
       }
    }
    for(int r = 0; r < heightr; r++){
-      for(int c = widthl; c < widthl+widthr; c++){
-         Pixel p = image2->GetPixel(r, c-widthl);
-         image.SetPixel(p, r, c);
+      for(int c = 0; c < widthr; c++){
+         Pixel p = image2->GetPixel(r, c);
+         image.SetPixel(p, r, c+widthl);
       }
    }
 }
@@ -289,10 +323,21 @@ void Rotate::Execute(){
    image.SetHeight(width);
    image.SetWidth(height);
    image.AllocateBufferSpace();
-   for(int r = 0; r < width; r++){
-      for(int c = height-1; c >= 0; c--){
-         Pixel p1 = this->image1->GetPixel(c, r);
-         image.SetPixel(p1, r, c);
+//   for(int r = 0; r < width; r++){
+//      for(int c = height-1; c >= 0; c--){
+//         p1 = this->image1->GetPixel(c, r);
+//         image.SetPixel(p1, r, c);
+//      }
+//   }
+//   for(int r = 0; r < height; r++){
+//      for(int c = 0; c < width; c++){
+//         image1->GetPixel(r, c);
+//         image.SetPixel(p1, c, r);
+//      }
+//   }
+   for(int r = 0; r < height; r++){
+      for(int c = 0; c < width; c++){
+         image.SetPixel(image1->GetPixel(r, c), c, height-1-r);
       }
    }
 }
@@ -312,11 +357,12 @@ void Grayscale::Execute(){
    image.SetHeight(height);
    image.SetWidth(width);
    image.AllocateBufferSpace();
+   Pixel p1;
+   Pixel p2;
    for(int r = 0; r < height; r++){
       for(int c = 0; c < width; c++){
-         Pixel p1 = image1->GetPixel(r, c);
-         Pixel p2;
-         unsigned char grayscaleval = (unsigned char)(int(p1.rgb[0])/5 + int(p1.rgb[1])/2 + int(p1.rgb[2])/4);
+         p1 = image1->GetPixel(r, c);
+         unsigned char grayscaleval = (unsigned char)(int(p1.rgb[0]/5) + int(p1.rgb[1]/2) + int(p1.rgb[2]/4));
          p2.rgb[0] = p2.rgb[1] = p2.rgb[2] = grayscaleval;
          image.SetPixel(p2, r, c);
       }
@@ -343,18 +389,18 @@ void Blur::Execute(){
          Pixel result;
          if(r != 0 && r != height-1 && c != 0 && c != width-1){
             for(int d = 0; d < 3; d++){
-               int val00 = int(image1->GetPixel(r-1, c-1).rgb[d])/8;
-               int val10 = int(image1->GetPixel(r-1, c).rgb[d])/8;
-               int val20 = int(image1->GetPixel(r-1, c+1).rgb[d])/8;
+               int val00 = int(image1->GetPixel(r-1, c-1).rgb[d]/8);
+               int val10 = int(image1->GetPixel(r-1, c).rgb[d]/8);
+               int val20 = int(image1->GetPixel(r-1, c+1).rgb[d]/8);
                
-               int val01 = int(image1->GetPixel(r, c-1).rgb[d])/8;
-               int val21 = int(image1->GetPixel(r, c+1).rgb[d])/8;
+               int val01 = int(image1->GetPixel(r, c-1).rgb[d]/8);
+               int val21 = int(image1->GetPixel(r, c+1).rgb[d]/8);
                
-               int val02 = int(image1->GetPixel(r+1, c-1).rgb[d])/8;
-               int val12 = int(image1->GetPixel(r+1, c).rgb[d])/8;
-               int val22 = int(image1->GetPixel(r+1, c+1).rgb[d])/8;
+               int val02 = int(image1->GetPixel(r+1, c-1).rgb[d]/8);
+               int val12 = int(image1->GetPixel(r+1, c).rgb[d]/8);
+               int val22 = int(image1->GetPixel(r+1, c+1).rgb[d]/8);
                
-               unsigned char valcombine = (unsigned char)(val00+val01+val02+val10+val12+val20+val21+val22);
+               unsigned char valcombine = (unsigned char)(val00+val10+val20  +  val01+val21  +  val02+val12+val22);
                result.rgb[d] = valcombine;
             }
          }
@@ -376,14 +422,31 @@ const char* Blur::FilterName(){
 void Subtract::Execute(){
    int height = this->image1->GetHeight();
    int width = this->image1->GetWidth();
-   image.SetMaxVal(this->image1->GetMaxVal());
+   
+   int height2 = this->image2->GetHeight();
+   int width2 = this->image2->GetWidth();
+   if(width != width2 || height != height2)
+   {
+      char msg[1024];
+      sprintf(msg, "%s: dimensions must match: image1 = %dx%d, image2 = %dx%d", SinkName(), width, height, width2, height2);
+      DataFlowException e(SinkName(), msg);
+      throw e;
+   }
+   int maxval1 = image1->GetMaxVal();
+   int maxval2 = image2->GetMaxVal();
+   if(maxval1 > maxval2){
+      image.SetMaxVal(maxval1);
+   }
+   else{
+      image.SetMaxVal(maxval2);
+   }
    image.SetMagicNum(this->image1->GetMagicNum());
    image.SetHeight(height);
    image.SetWidth(width);
    image.AllocateBufferSpace();
+   Pixel result;
    for(int r = 0; r < height; r++){
       for(int c = 0; c < width; c++){
-         Pixel result;
          for(int d = 0; d < 3; d++){
             int val1 = int(image1->GetPixel(r, c).rgb[d]);
             int val2 = int(image2->GetPixel(r, c).rgb[d]);
